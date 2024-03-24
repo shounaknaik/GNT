@@ -18,6 +18,7 @@ import config
 import torch.distributed as dist
 from gnt.projection import Projector
 from gnt.data_loaders.create_training_dataset import create_training_dataset
+from utils import read_points3d_binary
 import imageio
 
 
@@ -86,6 +87,12 @@ def train(args):
     # create projector
     projector = Projector(device=device)
 
+    # Read the 3d Points file
+    path_3d_points_bin = ''
+    points3D = read_points3d_binary(path_3d_points_bin)
+    points3D_xyz = [point3d.xyz for point3d in points3D.values()]
+
+
     # Create criterion
     criterion = Criterion()
     scalars_to_log = {}
@@ -112,6 +119,11 @@ def train(args):
                 sample_mode=args.sample_mode,
                 center_ratio=args.center_ratio,
             )
+
+            #Project the 3d points onto the target pose right now. We will get depth
+            
+
+            #Make a depth image of 
 
             featmaps = model.feature_net(ray_batch["src_rgbs"].squeeze(0).permute(0, 3, 1, 2))
 

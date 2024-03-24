@@ -131,3 +131,37 @@ class Projector:
             (inbound * mask_in_front).float().permute(1, 2, 0)[..., None]
         )  # [n_rays, n_samples, n_views, 1]
         return rgb_feat_sampled, ray_diff, mask
+
+    def project_in_one_image(self, xyz, camera_current):
+
+        original_shape = xyz.shape[:2]
+        xyz = xyz.reshape(-1, 3)
+        # num_views = len(camera_current)
+        num_views = 1
+        train_intrinsics = camera_cuurent[:, 2:18].reshape(-1, 4, 4)  # [n_views, 4, 4]
+        train_poses = camera_cuurent[:, -16:].reshape(-1, 4, 4)  # [n_views, 4, 4]
+
+        h,w = camera_cuurent[0][:2]
+
+        xyz_h = torch.cat([xyz, torch.ones_like(xyz[..., :1])], dim=-1)  # [n_points, 4]
+
+        projections = train_intrinsics.bmm(torch.inverse(train_poses)).bmm(
+            xyz_h.t()[None, ...].repeat(num_views, 1, 1)
+        )  # [n_views, 4, n_points]
+
+        projections = projections.permute(0, 2, 1)  # [n_views, n_points, 4]
+        pixel_locations = projections[..., :2] / torch.clamp(
+            projections[..., 2:3], min=1e-8
+        )  # [n_views, n_points, 2]
+
+        depth
+
+        pixel_locations = torch.clamp(pixel_locations, min=-1e6, max=1e6)
+        mask = projections[..., 2] > 0  # a point is invalid if behind the camera
+
+        pixel_locations = pixel_locations.reshape((num_views,) + original_shape + (2,)), mask.reshape(
+            (num_views,) + original_shape
+        )
+        # pixel_locations = self.normalize(pixel_locations,h, w)
+        return pixel_locations
+
