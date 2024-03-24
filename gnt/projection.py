@@ -132,7 +132,7 @@ class Projector:
         )  # [n_rays, n_samples, n_views, 1]
         return rgb_feat_sampled, ray_diff, mask
 
-    def project_in_one_image(self, xyz, camera_current):
+    def get_depth_in_one_image(self, xyz, camera_current):
 
         original_shape = xyz.shape[:2]
         xyz = xyz.reshape(-1, 3)

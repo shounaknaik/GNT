@@ -11,7 +11,7 @@ eval_dataset = nerf_synthetic
 eval_scenes = lego
 
 ### TRAINING
-N_rand = 2048
+N_rand = 512
 lrate_feature = 0.001
 lrate_gnt = 0.0005
 lrate_decay_factor = 0.5
@@ -20,7 +20,7 @@ single_net = True
 trans_depth = 4
 
 ### TESTING
-chunk_size = 2000
+chunk_size = 500
 
 ### RENDERING
 N_importance = 0
