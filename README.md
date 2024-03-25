@@ -1,3 +1,7 @@
+# TODO:
+1) Estimating the transformation between NeRF dataset origin and COLMAP origin  
+2) Scaling issue between depth loss  
+
 # Is Attention All That NeRF Needs?
 [Mukund Varma T](https://mukundvarmat.github.io/)<sup>1*</sup>,
 [Peihao Wang](https://peihaowang.github.io/)<sup>2*</sup>,
