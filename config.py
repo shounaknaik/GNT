@@ -177,7 +177,7 @@ def config_parser():
         help="render with large stride for validation to save time",
     )
 
-    ########## logging/saving options ##########
+    ########## logging/saving options ##########at this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
     parser.add_argument("--i_print", type=int, default=100, help="frequency of terminal printout")
     parser.add_argument(
         "--i_img", type=int, default=500, help="frequency of tensorboard image logging"

@@ -91,6 +91,8 @@ def train(args):
     path_3d_points_bin = './data/points3D.bin'
     points3D = read_points3d_binary(path_3d_points_bin)
     points3D_xyz = [point3d.xyz for point3d in points3D.values()]
+    # print(points3D_xyz)
+    # input('q')
 
 
     # Create criterion
@@ -121,9 +123,10 @@ def train(args):
             )
 
             #Project the 3d points onto the target pose right now. We will get depth
+            depth_image_map = projector.get_depth_in_one_image(points3D_xyz, ray_batch["camera"])
+            # print(np.any(depth_image_map))
+            # input('q')
 
-
-            #Make a depth image of 
 
             featmaps = model.feature_net(ray_batch["src_rgbs"].squeeze(0).permute(0, 3, 1, 2))
 

@@ -18,9 +18,12 @@ lrate_decay_factor = 0.5
 lrate_decay_steps = 50000
 single_net = True
 trans_depth = 4
+workers = 2
+n_iters = 50000
+
 
 ### TESTING
-chunk_size = 500
+chunk_size = 1000
 
 ### RENDERING
 N_importance = 0

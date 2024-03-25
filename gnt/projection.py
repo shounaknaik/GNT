@@ -1,5 +1,6 @@
 import torch
 import torch.nn.functional as F
+import numpy as np
 
 
 class Projector:
@@ -132,36 +133,44 @@ class Projector:
         )  # [n_rays, n_samples, n_views, 1]
         return rgb_feat_sampled, ray_diff, mask
 
+    def project_point(self,point, intrinsic_matrix,extrinsic_matrix):
+
+        """
+        Project a 3D point onto a 2D image plane.
+        """
+        point_homogeneous = np.append(point, 1)  # Convert to homogeneous coordinates
+        transformed_point = np.dot(extrinsic_matrix.cpu(), point_homogeneous)
+        projected_point_homogeneous = np.dot(intrinsic_matrix.cpu(), transformed_point)
+        projected_point = projected_point_homogeneous[:2] / projected_point_homogeneous[2]
+        projected_point = np.append(projected_point, projected_point_homogeneous[2])
+
+        return projected_point.astype(int)
+
+
     def get_depth_in_one_image(self, xyz, camera_current):
+        '''
+        Function that creates the depth map for a view using the 3D keypoints we got from the SfM/Colmap
+        :param xyz: [num_points_colmap, 3]
+        :param camera_current: [1, 34], 34 = img_size(2) + intrinsics(16) + extrinsics(16)
+        '''
 
-        original_shape = xyz.shape[:2]
-        xyz = xyz.reshape(-1, 3)
-        # num_views = len(camera_current)
-        num_views = 1
-        train_intrinsics = camera_cuurent[:, 2:18].reshape(-1, 4, 4)  # [n_views, 4, 4]
-        train_poses = camera_cuurent[:, -16:].reshape(-1, 4, 4)  # [n_views, 4, 4]
+        # Get all the camera parameters
+        height,width = camera_current[0][:2]
+        intrinsic_matrix = camera_current[0][2:18].reshape(-1,4)
+        intrinsic_matrix = intrinsic_matrix[:3,:3]
+        extrinsic_matrix = camera_current[0][18:].reshape(-1,4)
+        extrinsic_matrix = extrinsic_matrix[:3]
 
-        h,w = camera_cuurent[0][:2]
 
-        xyz_h = torch.cat([xyz, torch.ones_like(xyz[..., :1])], dim=-1)  # [n_points, 4]
 
-        projections = train_intrinsics.bmm(torch.inverse(train_poses)).bmm(
-            xyz_h.t()[None, ...].repeat(num_views, 1, 1)
-        )  # [n_views, 4, n_points]
+        depth_map = np.zeros((int(height.item()), int(width.item())))  # Initialize depth map
 
-        projections = projections.permute(0, 2, 1)  # [n_views, n_points, 4]
-        pixel_locations = projections[..., :2] / torch.clamp(
-            projections[..., 2:3], min=1e-8
-        )  # [n_views, n_points, 2]
+        for point_idx, point in enumerate(xyz):
+            u, v,depth = self.project_point(point, intrinsic_matrix, extrinsic_matrix)
+            if 0 <= u < width and 0 <= v < height:
+                # Calculate depth (distance from camera)
+                # depth = point[2]
+                depth_map[v, u] = depth
 
-        depth
-
-        pixel_locations = torch.clamp(pixel_locations, min=-1e6, max=1e6)
-        mask = projections[..., 2] > 0  # a point is invalid if behind the camera
-
-        pixel_locations = pixel_locations.reshape((num_views,) + original_shape + (2,)), mask.reshape(
-            (num_views,) + original_shape
-        )
-        # pixel_locations = self.normalize(pixel_locations,h, w)
-        return pixel_locations
+        return depth_map
 
