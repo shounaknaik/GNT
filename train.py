@@ -18,7 +18,7 @@ import config
 import torch.distributed as dist
 from gnt.projection import Projector
 from gnt.data_loaders.create_training_dataset import create_training_dataset
-from point_cloud_utils.read_3d_points import read_points3d_binary
+from point_cloud_utils.read_3d_points import get_3d_points_wrt_nerf_frame
 import imageio
 
 
@@ -89,10 +89,11 @@ def train(args):
 
     # Read the 3d Points file
     path_3d_points_bin = './data/points3D.bin'
-    points3D = read_points3d_binary(path_3d_points_bin)
-    points3D_xyz = [point3d.xyz for point3d in points3D.values()]
-    # print(points3D_xyz)
-    # input('q')
+    path_poses_colmap = './data/images.bin'
+    path_poses_nerf = './data/nerf_synthetic/chair/transforms_train.json'
+
+    points3D = get_3d_points_wrt_nerf_frame(path_poses_colmap, path_3d_points_bin, path_poses_nerf)
+    
 
 
     # Create criterion
