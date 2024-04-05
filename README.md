@@ -1,5 +1,6 @@
 # TODO:
 1) Estimating the transformation between NeRF dataset origin and COLMAP origin  
+ For this- after a lot of tries to relate the two world coordinate frames, due to noise we could not get a constant transformation matrix. Thus we have shifted to training NeRF in the colmap world frame. We use a modified version of the colmap2nerf.py script of the insantNGP repository from NVIDIA.
 2) Scaling issue between depth loss  
 
 # Is Attention All That NeRF Needs?

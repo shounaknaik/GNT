@@ -60,6 +60,15 @@ def train(args):
         if not os.path.isfile(f):
             shutil.copy(args.config, f)
 
+    if use_colmap:
+        # Read the 3d Points file
+        path_3d_points_bin = './data/points3D.bin'
+        path_poses_colmap = './data/images.bin'
+        path_poses_nerf = './data/nerf_synthetic/chair/transforms_train.json'
+
+        # points3D = get_3d_points_wrt_nerf_frame(path_poses_colmap, path_3d_points_bin, path_poses_nerf)
+        colmap_poses_dict, points3D_xyz = read_poses_points_colmap(path_poses_colmap,path_3d_points_bin)
+
     # create training dataset
     train_dataset, train_sampler = create_training_dataset(args)
     # currently only support batch_size=1 (i.e., one set of target and source views) for each GPU node
@@ -86,14 +95,6 @@ def train(args):
     )
     # create projector
     projector = Projector(device=device)
-
-    # Read the 3d Points file
-    path_3d_points_bin = './data/points3D.bin'
-    path_poses_colmap = './data/images.bin'
-    path_poses_nerf = './data/nerf_synthetic/chair/transforms_train.json'
-
-    points3D = get_3d_points_wrt_nerf_frame(path_poses_colmap, path_3d_points_bin, path_poses_nerf)
-    
 
 
     # Create criterion

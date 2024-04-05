@@ -1,14 +1,36 @@
 import numpy as np
 import collections
 import struct
+import math
 import json
 
-
+CameraModel = collections.namedtuple(
+    "CameraModel", ["model_id", "model_name", "num_params"])
+Camera = collections.namedtuple(
+    "Camera", ["id", "model", "width", "height", "params"])
 Point3D = collections.namedtuple(
     "Point3D", ["id", "xyz", "rgb", "error", "image_ids", "point2D_idxs"])
 
 BaseImage = collections.namedtuple(
     "Image", ["id", "qvec", "tvec", "camera_id", "name", "xys", "point3D_ids"])
+
+CAMERA_MODELS = {
+    CameraModel(model_id=0, model_name="SIMPLE_PINHOLE", num_params=3),
+    CameraModel(model_id=1, model_name="PINHOLE", num_params=4),
+    CameraModel(model_id=2, model_name="SIMPLE_RADIAL", num_params=4),
+    CameraModel(model_id=3, model_name="RADIAL", num_params=5),
+    CameraModel(model_id=4, model_name="OPENCV", num_params=8),
+    CameraModel(model_id=5, model_name="OPENCV_FISHEYE", num_params=8),
+    CameraModel(model_id=6, model_name="FULL_OPENCV", num_params=12),
+    CameraModel(model_id=7, model_name="FOV", num_params=5),
+    CameraModel(model_id=8, model_name="SIMPLE_RADIAL_FISHEYE", num_params=4),
+    CameraModel(model_id=9, model_name="RADIAL_FISHEYE", num_params=5),
+    CameraModel(model_id=10, model_name="THIN_PRISM_FISHEYE", num_params=12)
+}
+CAMERA_MODEL_IDS = dict([(camera_model.model_id, camera_model)
+                         for camera_model in CAMERA_MODELS])
+CAMERA_MODEL_NAMES = dict([(camera_model.model_name, camera_model)
+                           for camera_model in CAMERA_MODELS])
 
 
 
@@ -23,6 +45,58 @@ def read_next_bytes(fid, num_bytes, format_char_sequence, endian_character="<"):
     data = fid.read(num_bytes)
     return struct.unpack(endian_character + format_char_sequence, data)
 
+
+def write_points3D_text(points3D, path):
+    """
+    see: src/base/reconstruction.cc
+        void Reconstruction::ReadPoints3DText(const std::string& path)
+        void Reconstruction::WritePoints3DText(const std::string& path)
+    """
+    if len(points3D) == 0:
+        mean_track_length = 0
+    else:
+        mean_track_length = sum((len(pt.image_ids) for _, pt in points3D.items()))/len(points3D)
+    HEADER = "# 3D point list with one line of data per point:\n"
+    "#   POINT3D_ID, X, Y, Z, R, G, B, ERROR, TRACK[] as (IMAGE_ID, POINT2D_IDX)\n"
+    "# Number of points: {}, mean track length: {}\n".format(len(points3D), mean_track_length)
+
+    with open(path, "w") as fid:
+        fid.write(HEADER)
+        for _, pt in points3D.items():
+            point_header = [pt.id, *pt.xyz, *pt.rgb, pt.error]
+            fid.write(" ".join(map(str, point_header)) + " ")
+            track_strings = []
+            for image_id, point2D in zip(pt.image_ids, pt.point2D_idxs):
+                track_strings.append(" ".join(map(str, [image_id, point2D])))
+            fid.write(" ".join(track_strings) + "\n")
+
+def read_cameras_binary(path_to_model_file):
+    """
+    see: src/base/reconstruction.cc
+        void Reconstruction::WriteCamerasBinary(const std::string& path)
+        void Reconstruction::ReadCamerasBinary(const std::string& path)
+    """
+    cameras = {}
+    with open(path_to_model_file, "rb") as fid:
+        num_cameras = read_next_bytes(fid, 8, "Q")[0]
+        for _ in range(num_cameras):
+            camera_properties = read_next_bytes(
+                fid, num_bytes=24, format_char_sequence="iiQQ")
+            camera_id = camera_properties[0]
+            model_id = camera_properties[1]
+            model_name = CAMERA_MODEL_IDS[camera_properties[1]].model_name
+            width = camera_properties[2]
+            height = camera_properties[3]
+            num_params = CAMERA_MODEL_IDS[model_id].num_params
+            params = read_next_bytes(fid, num_bytes=8*num_params,
+                                     format_char_sequence="d"*num_params)
+            cameras[camera_id] = Camera(id=camera_id,
+                                        model=model_name,
+                                        width=width,
+                                        height=height,
+                                        params=np.array(params))
+        assert len(cameras) == num_cameras
+    return cameras
 
 def read_points3d_binary(path_to_model_file):
     """
@@ -94,14 +168,13 @@ def rotmat(a, b):
 	kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
 	return np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2 + 1e-10))
 
-def read_cameras_binary(path_to_model_file):
+def read_images_binary_and_transform(path_to_model_file):
     """
     see: src/base/reconstruction.cc
         void Reconstruction::WriteCamerasBinary(const std::string& path)
         void Reconstruction::ReadCamerasBinary(const std::string& path)
     """
     images = {}
-    full_poses_dict = {}
 
     c2w_dict={}
 
@@ -112,8 +185,6 @@ def read_cameras_binary(path_to_model_file):
 
 
     # find a central point they are all looking at
-    num_points2D_max = -1
-    best_image = None
     with open(path_to_model_file, "rb") as fid:
         num_reg_images = read_next_bytes(fid, 8, "Q")[0]
         for image_index in range(num_reg_images):
@@ -130,6 +201,7 @@ def read_cameras_binary(path_to_model_file):
                 current_char = read_next_bytes(fid, 1, "c")[0]
             num_points2D = read_next_bytes(fid, num_bytes=8,
                                            format_char_sequence="Q")[0]
+            # print(num_points2D)
             x_y_id_s = read_next_bytes(fid, num_bytes=24*num_points2D,
                                        format_char_sequence="ddq"*num_points2D)
             xys = np.column_stack([tuple(map(float, x_y_id_s[0::3])),
@@ -153,24 +225,17 @@ def read_cameras_binary(path_to_model_file):
 
             c2w_dict[image_name] = c2w
 
-            
-
-
             up += c2w[0:3,1]
-            if(num_points2D > num_points2D_max):
-                num_points2D_max = num_points2D
-                best_image = image_name
 
-    
 
     up = up / np.linalg.norm(up)
     print("up vector was", up)
     R = rotmat(up,[0,0,1]) # rotate up vector to [0,0,1]
-    R = np.pad(R,[0,1])
-    R[-1, -1] = 1
+    transfomation_rotation_only = np.pad(R,[0,1])
+    transfomation_rotation_only[-1, -1] = 1
 
-    # for key in c2w_dict.keys():
-    #     c2w_dict[key] = np.matmul(R, c2w_dict[key]) # rotate up to be the z axis
+    for key in c2w_dict.keys():
+        c2w_dict[key] = np.matmul(transfomation_rotation_only, c2w_dict[key]) # rotate up to be the z axis
 
     print("computing center of attention...")
     totw = 0.0
@@ -200,131 +265,88 @@ def read_cameras_binary(path_to_model_file):
     print("Scaling to Nerf scale...")
     for key in c2w_dict.keys():
         c2w_dict[key][0:3,3] *= 4.0 / avglen # scale to "nerf sized"
-        w2c = np.linalg.inv(c2w_dict[key])
-        full_poses_dict[key] = w2c
 
-		
             
-    return images, full_poses_dict, best_image
+    return images, c2w_dict, transfomation_rotation_only, totp
 
-def read_poses_nerf(nerf_pose_file):
+if __name__ == "__main__":
 
-    with open(nerf_pose_file, "r") as fp:
-        meta = json.load(fp)
+    path_to_images_file = './chair_all/sparse/0/images.bin'
+    path_to_points_file = './chair_all/sparse/0/points3D.bin'
+    path_to_cameras_file = './chair_all/sparse/0/cameras.bin'
 
-    # https://docs.nerf.studio/quickstart/data_conventions.html
-    # We need to change the y and z axes to be negative since there is a difference between 
-    # the way COLMAP/OpenCV and NeRF datasets define the axes.
-    # We are keeping all poses in OpenCV convention
+    _, colmap_poses_dict, transfomation_rotation_only, totp = read_images_binary_and_transform(path_to_images_file)
+    points_dict = read_points3d_binary(path_to_points_file)
 
-    c2w_mats = {} 
-    for i, frame in enumerate(meta["frames"]):
-        c2w = np.array(frame["transform_matrix"])
-        filename = frame["file_path"].split('/')[-1] +".png"
-        w2c_blender = np.linalg.inv(c2w)
-        w2c_opencv = w2c_blender
-        # w2c_opencv[1:3] *= -1
-        c2w_opencv = np.linalg.inv(w2c_opencv)
-        c2w_mats[filename] = c2w_opencv
-    
-    # print("computing center of attention...")
-    # totw = 0.0
-    # totp = np.array([0.0, 0.0, 0.0])
-    # #Z is the direction of the camera, thus take the 2 column index from pose
-    # for key in c2w_mats.keys():
-    #     mf = c2w_mats[key][0:3,:]
-    #     for key_2 in c2w_mats.keys():
-    #         mg = c2w_mats[key_2][0:3,:]
-    #         p, w = closest_point_2_lines(mf[:,3], mf[:,2], mg[:,3], mg[:,2])
-    #         if w > 0.00001:
-    #             totp += p*w
-    #             totw += w
-    
-    # if totw > 0.0:
-    #     totp = totp/totw
-    # print(totp) # the cameras are looking at totp
-
-    # # Code for finding the scale of the NeRF dataset
-    # avglen = 0 
-    # for key in c2w_mats.keys():
-    #     avglen += np.linalg.norm(c2w_mats[key][0:3,3])
-    # avglen /= len(c2w_mats)
-    # print(f"Scale of NerF dataset is {avglen}")
+    #Cameras dict keys are camera_id
+    cameras_dict = read_cameras_binary(path_to_cameras_file)
+    # print(cameras_dict)
     # input('q')
-    return c2w_mats
 
-def get_3d_points_wrt_nerf_frame(path_poses_colmap,path_points, path_poses_nerf):
-    """
-    Estimates the average of the transformation between colmap origin and nerf origin. 
-    Then transforms the colmap points into nerf frame of reference.
-    Tranformation_colmap_nerf = Transformation_colmap_Cameraframe* Transformation_Cameraframe_nerf
-    Transformation_x_y is transformation from x to y
-    """
-    
-    _, comlmap_poses_dict, best_image = read_cameras_binary(path_poses_colmap)
-    points_dict= read_points3d_binary(path_points)
+    # points3D_xyz = [point3d.xyz for point3d in points_dict.values()]
+    points3D = {}
+    for point3D in points_dict.values():
 
-    points3D_xyz = [point3d.xyz for point3d in points_dict.values()]
-
-    # https://colmap.github.io/format.html This states the COLMAP poses are world to camera
-
-    # CameraFrame wrt to colmap
-    # poses_colmap_Cameraframe = [pose for pose in comlmap_poses_dict.values()]
-
-    #CameraFrame wrt to NeRF dataset origin
-    poses_Cameraframe_nerf = read_poses_nerf(path_poses_nerf)
-
-    #Make the scale of colmap equal to nerf
-    # Code adapted from https://github.dev/NVlabs/instant-ngp/blob/master/scripts/colmap2nerf.py#L179
-
-    # Iterate over the colmap_Cameraframe dictionary since all the images might have not been registered in the COLMAP.
-    # Ensuring the correct matrices are multiplied with each other by using the same filename.
-
-
-    poses_colmap_nerf = []
-    k=0
-    for filename in comlmap_poses_dict.keys():
-        # print(filename)
-        temp_colmap_Cameraframe = comlmap_poses_dict[filename]
-        temp_Cameraframe_nerf = poses_Cameraframe_nerf[filename]
-        # print(np.linalg.inv(temp_colmap_Cameraframe))
-        # print("Hello")
-        # print(temp_Cameraframe_nerf)
-        poses_colmap_nerf.append(np.dot(temp_colmap_Cameraframe,temp_Cameraframe_nerf))
+        temp_xyz = point3D.xyz
         
-        # colmap_nerf = np.dot(temp_colmap_Cameraframe,temp_Cameraframe_nerf)
-        # temp_Cameraframe_colmap = np.linalg.inv(temp_colmap_Cameraframe)
-        # # print(np.dot(temp_Cameraframe_colmap,colmap_nerf))
-        # # print(temp_Cameraframe_nerf)
-        # if k==2:
-        #     break
-        # k+=1
+        temp_xyz = np.matmul(transfomation_rotation_only, np.append(temp_xyz,1).T)
+        temp_xyz = temp_xyz[:-1]/temp_xyz[-1]
+        temp_xyz = temp_xyz -totp
 
+        # point3D.xyz = temp_xyz
+        temp_3Dpoint = Point3D(
+                id = point3D.id, xyz = temp_xyz, rgb = point3D.rgb,
+                error=point3D.error, image_ids = point3D.image_ids,
+                point2D_idxs = point3D.point2D_idxs)
+        points3D[point3D.id] = temp_3Dpoint
+
+    write_points3D_text(points3D, './points3D.txt')
+
+    ## Write the new json transform file for train and val
+    # camera_width = cameras_dict[1].width
+    # camera_angle_x = math.atan( camera_width/ (camera["fl_x"] * 2)) * 2
+    
+    out_json_train = {
+        "frames": []
+    }
+    out_json_val = {
+        "frames": []
+    }
+    for filename, pose in colmap_poses_dict.items():
+
+        if filename.split('/')[-1].split('_')[0] == 'train':
+            pure_file_name = '_'.join(filename.split('/')[-1].split('_')[1:])
+            frame = {"file_path": f"./train/{pure_file_name}", "transform_matrix": pose.tolist()}
+            out_json_train["frames"].append(frame)
+        
+        else:
+            pure_file_name = '_'.join(filename.split('/')[-1].split('_')[1:])
+            frame = {"file_path": f"./val/{pure_file_name}", "transform_matrix": pose.tolist()}
+            out_json_val["frames"].append(frame)
+        
+    
+    # print(out_json_train)
+    with open("transforms_train_colmap.json", "w") as outfile:
+        json.dump(out_json_train, outfile, indent=2)
+    with open("transforms_val_colmap.json", "w") as outfile:
+        json.dump(out_json_val, outfile, indent=2)
+    
+
+
+        
 
     
     
-    for i in range(len(poses_colmap_nerf)):
-        print(poses_colmap_nerf[i])
-        if i==4:
-            break
-    print("Best")
-    print(np.dot(comlmap_poses_dict[best_image],poses_Cameraframe_nerf[best_image]))
-    input('q')
 
-def read_poses_points_colmap(path_poses_colmap,path_points):
-    _, colmap_poses_dict, best_image = read_cameras_binary(path_poses_colmap)
-    points_dict= read_points3d_binary(path_points)
-
-    points3D_xyz = [point3d.xyz for point3d in points_dict.values()]
+    
+    
+    
 
 
-    return colmap_poses_dict, points3D_xyz
 
 
     
 
 
 
-
-
-
+    
