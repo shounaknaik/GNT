@@ -30,7 +30,7 @@ def read_cameras(pose_file):
         c2w = np.array(frame["transform_matrix"])
         w2c_blender = np.linalg.inv(c2w)
         w2c_opencv = w2c_blender
-        w2c_opencv[1:3] *= -1
+        # w2c_opencv[1:3] *= -1
         c2w_opencv = np.linalg.inv(w2c_opencv)
         c2w_mats.append(c2w_opencv)
     c2w_mats = np.array(c2w_mats)
@@ -75,7 +75,7 @@ class NerfSyntheticDataset(Dataset):
 
         for scene in scenes:
             self.scene_path = os.path.join(self.folder_path, scene)
-            pose_file = os.path.join(self.scene_path, "transforms_{}.json".format(mode))
+            pose_file = os.path.join(self.scene_path, "transforms_{}_colmap.json".format(mode))
             rgb_files, intrinsics, poses = read_cameras(pose_file)
             if self.mode != "train":
                 rgb_files = rgb_files[:: self.testskip]
@@ -93,7 +93,7 @@ class NerfSyntheticDataset(Dataset):
         render_pose = self.render_poses[idx]
         render_intrinsics = self.render_intrinsics[idx]
 
-        train_pose_file = os.path.join("/".join(rgb_file.split("/")[:-2]), "transforms_train.json")
+        train_pose_file = os.path.join("/".join(rgb_file.split("/")[:-2]), "transforms_train_colmap.json")
         train_rgb_files, train_intrinsics, train_poses = read_cameras(train_pose_file)
 
         if self.mode == "train":

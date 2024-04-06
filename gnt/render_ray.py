@@ -248,8 +248,8 @@ def render_rays(
         rgb, weights = rgb[:, 0:3], rgb[:, 3:]
         depth_map = torch.sum(weights * z_vals, dim=-1)
     else:
-        weights = None
-        depth_map = None
+        rgb, weights = rgb[:, 0:3], rgb[:, 3:]
+        depth_map = torch.sum(weights * z_vals, dim=-1)
     ret["outputs_coarse"] = {"rgb": rgb, "weights": weights, "depth": depth_map}
 
     if N_importance > 0:

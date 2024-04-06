@@ -142,9 +142,9 @@ class Projector:
         transformed_point = np.dot(extrinsic_matrix.cpu(), point_homogeneous)
         projected_point_homogeneous = np.dot(intrinsic_matrix.cpu(), transformed_point)
         projected_point = projected_point_homogeneous[:2] / projected_point_homogeneous[2]
-        projected_point = np.append(projected_point, projected_point_homogeneous[2])
+        # projected_point = np.append(projected_point, projected_point_homogeneous[2])
 
-        return projected_point.astype(int)
+        return projected_point.astype(int), projected_point_homogeneous[2]
 
 
     def get_depth_in_one_image(self, xyz, camera_current):
@@ -164,13 +164,19 @@ class Projector:
 
 
         depth_map = np.zeros((int(height.item()), int(width.item())))  # Initialize depth map
-
+        print(height,width)
         for point_idx, point in enumerate(xyz):
-            u, v,depth = self.project_point(point, intrinsic_matrix, extrinsic_matrix)
+            image_coordinates,depth = self.project_point(point, intrinsic_matrix, extrinsic_matrix)
+            u,v = image_coordinates
+            
             if 0 <= u < width and 0 <= v < height:
                 # Calculate depth (distance from camera)
                 # depth = point[2]
                 depth_map[v, u] = depth
+                # print(u,v)
 
+        non_zero_indices = np.nonzero(depth_map)
+        non_zero_values = depth_map[non_zero_indices]
+        print(non_zero_values)
         return depth_map
 

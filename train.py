@@ -18,7 +18,7 @@ import config
 import torch.distributed as dist
 from gnt.projection import Projector
 from gnt.data_loaders.create_training_dataset import create_training_dataset
-from point_cloud_utils.read_3d_points import get_3d_points_wrt_nerf_frame
+from point_cloud_utils.read_3d_points import read_points3D_text
 import imageio
 
 
@@ -60,14 +60,13 @@ def train(args):
         if not os.path.isfile(f):
             shutil.copy(args.config, f)
 
-    if use_colmap:
-        # Read the 3d Points file
-        path_3d_points_bin = './data/points3D.bin'
-        path_poses_colmap = './data/images.bin'
-        path_poses_nerf = './data/nerf_synthetic/chair/transforms_train.json'
-
-        # points3D = get_3d_points_wrt_nerf_frame(path_poses_colmap, path_3d_points_bin, path_poses_nerf)
-        colmap_poses_dict, points3D_xyz = read_poses_points_colmap(path_poses_colmap,path_3d_points_bin)
+    # Read the 3d Points file
+    points3D_xyz = None
+    if args.use_colmap_depth:
+        #TODO: modularize the scene parameter
+        
+        path_3d_points_txt = f'./data/nerf_synthetic/chair/points3D.txt'
+        points3D_xyz = read_points3D_text(path_3d_points_txt)
 
     # create training dataset
     train_dataset, train_sampler = create_training_dataset(args)
@@ -124,10 +123,12 @@ def train(args):
                 center_ratio=args.center_ratio,
             )
 
-            #Project the 3d points onto the target pose right now. We will get depth
-            depth_image_map = projector.get_depth_in_one_image(points3D_xyz, ray_batch["camera"])
-            # print(np.any(depth_image_map))
-            # input('q')
+            depth_image_map = None
+            if args.use_colmap_depth:
+                #Project the 3d points onto the target pose right now. We will get depth
+                depth_image_map = projector.get_depth_in_one_image(points3D_xyz, ray_batch["camera"])
+                # input('q')
+
 
 
             featmaps = model.feature_net(ray_batch["src_rgbs"].squeeze(0).permute(0, 3, 1, 2))
@@ -142,9 +143,11 @@ def train(args):
                 N_importance=args.N_importance,
                 det=args.det,
                 white_bkgd=args.white_bkgd,
-                ret_alpha=args.N_importance > 0,
+                ret_alpha=True,
                 single_net=args.single_net,
             )
+            print(len(ret["outputs_coarse"]["depth"]))
+            input('q')
 
             # compute loss
             model.optimizer.zero_grad()

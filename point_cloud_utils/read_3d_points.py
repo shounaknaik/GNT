@@ -24,6 +24,7 @@ def read_next_bytes(fid, num_bytes, format_char_sequence, endian_character="<"):
     return struct.unpack(endian_character + format_char_sequence, data)
 
 
+
 def read_points3d_binary(path_to_model_file):
     """
     see: src/base/reconstruction.cc
@@ -93,6 +94,34 @@ def rotmat(a, b):
 	s = np.linalg.norm(v)
 	kmat = np.array([[0, -v[2], v[1]], [v[2], 0, -v[0]], [-v[1], v[0], 0]])
 	return np.eye(3) + kmat + kmat.dot(kmat) * ((1 - c) / (s ** 2 + 1e-10))
+
+def read_points3D_text(path):
+    """
+    see: src/base/reconstruction.cc
+        void Reconstruction::ReadPoints3DText(const std::string& path)
+        void Reconstruction::WritePoints3DText(const std::string& path)
+    """
+    points3D = {}
+    with open(path, "r") as fid:
+        while True:
+            line = fid.readline()
+            if not line:
+                break
+            line = line.strip()
+            if len(line) > 0 and line[0] != "#":
+                elems = line.split()
+                point3D_id = int(elems[0])
+                xyz = np.array(tuple(map(float, elems[1:4])))
+                rgb = np.array(tuple(map(int, elems[4:7])))
+                error = float(elems[7])
+                image_ids = np.array(tuple(map(int, elems[8::2])))
+                point2D_idxs = np.array(tuple(map(int, elems[9::2])))
+                points3D[point3D_id] = Point3D(id=point3D_id, xyz=xyz, rgb=rgb,
+                                               error=error, image_ids=image_ids,
+                                               point2D_idxs=point2D_idxs)
+    points3D_xyz = [point3D.xyz for point3D in points3D.values()]
+    return points3D_xyz
+
 
 def read_cameras_binary(path_to_model_file):
     """

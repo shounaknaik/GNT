@@ -23,7 +23,7 @@ class GNTModel(object):
             in_feat_ch=self.args.coarse_feat_dim,
             posenc_dim=3 + 3 * 2 * 10,
             viewenc_dim=3 + 3 * 2 * 10,
-            ret_alpha=args.N_importance > 0,
+            ret_alpha=True,
         ).to(device)
         # single_net - trains single network which can be used for both coarse and fine sampling
         if args.single_net:
