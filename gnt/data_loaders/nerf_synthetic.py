@@ -30,7 +30,7 @@ def read_cameras(pose_file):
         c2w = np.array(frame["transform_matrix"])
         w2c_blender = np.linalg.inv(c2w)
         w2c_opencv = w2c_blender
-        # w2c_opencv[1:3] *= -1
+        w2c_opencv[1:3] *= -1
         c2w_opencv = np.linalg.inv(w2c_opencv)
         c2w_mats.append(c2w_opencv)
     c2w_mats = np.array(c2w_mats)

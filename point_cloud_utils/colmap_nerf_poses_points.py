@@ -267,7 +267,7 @@ def read_images_binary_and_transform(path_to_model_file):
         c2w_dict[key][0:3,3] *= 4.0 / avglen # scale to "nerf sized"
 
             
-    return images, c2w_dict, transfomation_rotation_only, totp
+    return images, c2w_dict, transfomation_rotation_only, totp, avglen
 
 if __name__ == "__main__":
 
@@ -275,7 +275,7 @@ if __name__ == "__main__":
     path_to_points_file = './chair_all/sparse/0/points3D.bin'
     path_to_cameras_file = './chair_all/sparse/0/cameras.bin'
 
-    _, colmap_poses_dict, transfomation_rotation_only, totp = read_images_binary_and_transform(path_to_images_file)
+    _, colmap_poses_dict, transfomation_rotation_only, totp, avglen = read_images_binary_and_transform(path_to_images_file)
     points_dict = read_points3d_binary(path_to_points_file)
 
     #Cameras dict keys are camera_id
@@ -289,9 +289,15 @@ if __name__ == "__main__":
 
         temp_xyz = point3D.xyz
         
+        #This is done since the during the processing of c2w, world axes are swapped between x and y
+        # World z is also flipped. This must be appropraitely reflected when converting the point cloud as well.
+        temp_xyz[0], temp_xyz[1] = temp_xyz[1], temp_xyz[0]
+        temp_xyz[2] *= -1
+
         temp_xyz = np.matmul(transfomation_rotation_only, np.append(temp_xyz,1).T)
         temp_xyz = temp_xyz[:-1]/temp_xyz[-1]
         temp_xyz = temp_xyz -totp
+        temp_xyz = temp_xyz*4.0/avglen
 
         # point3D.xyz = temp_xyz
         temp_3Dpoint = Point3D(

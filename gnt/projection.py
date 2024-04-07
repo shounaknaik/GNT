@@ -159,12 +159,16 @@ class Projector:
         intrinsic_matrix = camera_current[0][2:18].reshape(-1,4)
         intrinsic_matrix = intrinsic_matrix[:3,:3]
         extrinsic_matrix = camera_current[0][18:].reshape(-1,4)
+        #Inverting since the extrinsic matrix is camera to world
+        extrinsic_matrix = torch.inverse(extrinsic_matrix)
         extrinsic_matrix = extrinsic_matrix[:3]
+        
+        
 
 
 
         depth_map = np.zeros((int(height.item()), int(width.item())))  # Initialize depth map
-        print(height,width)
+        # print(height,width)
         for point_idx, point in enumerate(xyz):
             image_coordinates,depth = self.project_point(point, intrinsic_matrix, extrinsic_matrix)
             u,v = image_coordinates
