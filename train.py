@@ -147,11 +147,13 @@ def train(args):
                 single_net=args.single_net,
             )
             print(len(ret["outputs_coarse"]["depth"]))
-            input('q')
+            # input('q')
 
             # compute loss
             model.optimizer.zero_grad()
             loss, scalars_to_log = criterion(ret["outputs_coarse"], ray_batch, scalars_to_log)
+            depth_loss = 
+            print(loss)
 
             if ret["outputs_fine"] is not None:
                 fine_loss, scalars_to_log = criterion(

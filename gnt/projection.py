@@ -175,12 +175,15 @@ class Projector:
             
             if 0 <= u < width and 0 <= v < height:
                 # Calculate depth (distance from camera)
-                # depth = point[2]
+                # Take only the point which is closer to the camera
+                if depth_map[v,u] != 0:
+                    depth = min(depth_map[v,u],depth)
                 depth_map[v, u] = depth
                 # print(u,v)
 
         non_zero_indices = np.nonzero(depth_map)
         non_zero_values = depth_map[non_zero_indices]
         print(non_zero_values)
+        print(len(non_zero_values))
         return depth_map
 

@@ -75,6 +75,8 @@ class RaySamplerSingleImage(object):
         :param c2w: 4 by 4 camera to world extrinsic matrix
         :return:
         """
+
+        
         u, v = np.meshgrid(
             np.arange(W)[:: self.render_stride], np.arange(H)[:: self.render_stride]
         )
@@ -135,9 +137,13 @@ class RaySamplerSingleImage(object):
         """
 
         select_inds = self.sample_random_pixel(N_rand, sample_mode, center_ratio)
-
+        import pdb
+        pdb.set_trace()
         rays_o = self.rays_o[select_inds]
         rays_d = self.rays_d[select_inds]
+
+        u = select_inds % self.W  # Calculate u position
+        v = select_inds // self.W  # Calculate v position
 
         if self.rgb is not None:
             rgb = self.rgb[select_inds]
@@ -153,5 +159,7 @@ class RaySamplerSingleImage(object):
             "src_rgbs": self.src_rgbs.cuda() if self.src_rgbs is not None else None,
             "src_cameras": self.src_cameras.cuda() if self.src_cameras is not None else None,
             "selected_inds": select_inds,
+            "u_positions": u,
+            "v_positions": v
         }
         return ret

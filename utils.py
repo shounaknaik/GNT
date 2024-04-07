@@ -61,7 +61,12 @@ def img2mse(x, y, mask=None):
     :return: mse score
     """
     if mask is None:
-        return torch.mean((x - y) * (x - y))
+        loss = torch.mean((x - y) * (x - y))
+        print(y.shape)
+        print(y)
+        print(loss)
+        input('q')
+        return loss 
     else:
         return torch.sum((x - y) * (x - y) * mask.unsqueeze(-1)) / (
             torch.sum(mask) * x.shape[-1] + TINY_NUMBER
