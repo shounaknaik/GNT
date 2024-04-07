@@ -12,7 +12,7 @@ from gnt.render_ray import render_rays
 from gnt.render_image import render_single_image
 from gnt.model import GNTModel
 from gnt.sample_ray import RaySamplerSingleImage
-from gnt.criterion import Criterion
+from gnt.criterion import Criterion, DepthCriterion
 from utils import img2mse, mse2psnr, img_HWC2CHW, colorize, cycle, img2psnr
 import config
 import torch.distributed as dist
@@ -98,6 +98,7 @@ def train(args):
 
     # Create criterion
     criterion = Criterion()
+    depth_loss_criterion = DepthCriterion()
     scalars_to_log = {}
 
     global_step = model.start_step + 1
@@ -146,13 +147,12 @@ def train(args):
                 ret_alpha=True,
                 single_net=args.single_net,
             )
-            print(len(ret["outputs_coarse"]["depth"]))
-            # input('q')
 
             # compute loss
             model.optimizer.zero_grad()
             loss, scalars_to_log = criterion(ret["outputs_coarse"], ray_batch, scalars_to_log)
-            depth_loss = 
+            depth_loss = depth_loss_criterion(ret["outputs_coarse"], ray_batch, depth_image_map)
+            loss += depth_loss
             print(loss)
 
             if ret["outputs_fine"] is not None:

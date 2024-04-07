@@ -62,10 +62,10 @@ def img2mse(x, y, mask=None):
     """
     if mask is None:
         loss = torch.mean((x - y) * (x - y))
-        print(y.shape)
-        print(y)
-        print(loss)
-        input('q')
+        # print(y.shape)
+        # print(y)
+        # print(loss)
+        # input('q')
         return loss 
     else:
         return torch.sum((x - y) * (x - y) * mask.unsqueeze(-1)) / (

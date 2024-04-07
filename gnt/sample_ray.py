@@ -137,8 +137,7 @@ class RaySamplerSingleImage(object):
         """
 
         select_inds = self.sample_random_pixel(N_rand, sample_mode, center_ratio)
-        import pdb
-        pdb.set_trace()
+    
         rays_o = self.rays_o[select_inds]
         rays_d = self.rays_d[select_inds]
 
