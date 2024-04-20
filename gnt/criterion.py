@@ -1,6 +1,7 @@
+import torch
 import torch.nn as nn
 from utils import img2mse
-
+import numpy as np
 
 class Criterion(nn.Module):
     def __init__(self):
@@ -37,8 +38,32 @@ class DepthCriterion(nn.Module):
         colmap_depth = colmap_depth_map[us,vs]
 
         # loss = img2mse(pred_rgb, gt_rgb, pred_mask)
+        print("Inside Depth Loss")
+        
+        print(len(pred_depth_attention))
+        print(len(colmap_depth))
+        print(type(pred_depth_attention))
+        print(type(colmap_depth))
+
+        # Assuming pred_depth_attention and colmap_depth are lists of probabilities
+        pred_depth_attention = torch.tensor(pred_depth_attention)
+        colmap_depth = torch.tensor(colmap_depth).to('cuda:0')
+
+        # Ensure probabilities sum up to 1 (normalize)
+        pred_depth_attention /= torch.sum(pred_depth_attention)
+        colmap_depth /= torch.sum(colmap_depth)
+
         print(pred_depth_attention)
         print(colmap_depth)
+
+        # Compute KL divergence
+        # Ground truth is colmap depth and we want to match the pred_depth_attention to colmap_depth.
+        # Thus q is pred_depth_attention and p is colmap_depth
+        #Scaling the loss by half to match ranges of loss values from rgb
+        kl_divergence = torch.sum(torch.where(colmap_depth !=0, colmap_depth * torch.log(colmap_depth / pred_depth_attention),0))*0.5
+
+        print("KL Divergence:", kl_divergence)
+
 
         input('q')
 
