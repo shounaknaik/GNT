@@ -1,5 +1,5 @@
 ### INPUT
-expname = gnt_blender
+expname = colmap_depth
 rootdir = ./
 render_stride = 2
 distributed = False
@@ -15,7 +15,7 @@ N_rand = 512
 lrate_feature = 0.001
 lrate_gnt = 0.0005
 lrate_decay_factor = 0.5
-lrate_decay_steps = 50000
+lrate_decay_steps = 10000
 single_net = True
 trans_depth = 4
 workers = 2

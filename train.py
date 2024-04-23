@@ -161,15 +161,15 @@ def train(args):
             model.optimizer.zero_grad()
             loss, scalars_to_log = criterion(ret["outputs_coarse"], ray_batch, scalars_to_log)
             
-            print(f"RGB Loss is {loss}")
+            # print(f"RGB Loss is {loss}")
             if args.use_colmap_depth:
                 depth_loss = depth_loss_criterion(ret["outputs_coarse"], ray_batch, depth_image_map)
                 loss = (1 - args.lamda_colmap_depth)*loss
-                print(f"RGB Scaled Loss is {loss}")
-                print(f"Depth loss is {args.lamda_colmap_depth * depth_loss}")
+                # print(f"RGB Scaled Loss is {loss}")
+                # print(f"Depth loss is {args.lamda_colmap_depth * depth_loss}")
                 loss += args.lamda_colmap_depth * depth_loss
             
-            print(f"Total Loss is {loss}")
+            # print(f"Total Loss is {loss}")
 
             if ret["outputs_fine"] is not None:
                 fine_loss, scalars_to_log = criterion(
