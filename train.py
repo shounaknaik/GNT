@@ -20,6 +20,7 @@ from gnt.projection import Projector
 from gnt.data_loaders.create_training_dataset import create_training_dataset
 from point_cloud_utils.read_3d_points import read_points3D_text
 import imageio
+import pickle
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -64,11 +65,15 @@ def train(args):
 
     # Read the 3d Points file
     points3D_xyz = None
+    projection_dict = None
     if args.use_colmap_depth:
         #TODO: modularize the scene parameter
         
         path_3d_points_txt = f'./data/nerf_synthetic/chair/points3D.txt'
         points3D_xyz = read_points3D_text(path_3d_points_txt)
+        projection_dict_file_path = './data/nerf_synthetic/chair/projection_dict.pkl'
+        with open(projection_dict_file_path, 'rb') as f:
+            projection_dict = pickle.load(f)
 
     # create training dataset
     train_dataset, train_sampler = create_training_dataset(args)
@@ -129,7 +134,9 @@ def train(args):
             depth_image_map = None
             if args.use_colmap_depth:
                 #Project the 3d points onto the target pose right now. We will get depth
-                depth_image_map = projector.get_depth_in_one_image(points3D_xyz, ray_batch["camera"])
+                # depth_image_map = projector.get_depth_in_one_image(points3D_xyz, ray_batch["camera"])
+                current_camera_path = train_data["rgb_path"][0].split("/")[-1]
+                depth_image_map = projection_dict[current_camera_path]
                 # input('q')
 
 
