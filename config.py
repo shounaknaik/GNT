@@ -5,7 +5,8 @@ def config_parser():
     parser = configargparse.ArgumentParser()
     # general
     parser.add_argument("--config", is_config_file=True, help="config file path")
-    parser.add_argument("--use_colmap_depth",default= True, help="Whether or not to use Depth Based Loss")
+    parser.add_argument("--use_colmap_depth",action = "store_true", help="Whether or not to use Depth Based Loss")
+    parser.add_argument("--lamda_colmap_depth", default = 0.3, help= "Weight for the colmap depth loss")
     parser.add_argument(
         "--rootdir",
         type=str,

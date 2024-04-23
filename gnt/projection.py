@@ -183,7 +183,7 @@ class Projector:
 
         non_zero_indices = np.nonzero(depth_map)
         non_zero_values = depth_map[non_zero_indices]
-        print(non_zero_values)
-        print(len(non_zero_values))
+        # print(non_zero_values)
+        # print(len(non_zero_values))
         return depth_map
 
