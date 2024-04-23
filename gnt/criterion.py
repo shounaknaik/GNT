@@ -17,6 +17,8 @@ class Criterion(nn.Module):
         else:
             pred_mask = None
         gt_rgb = ray_batch["rgb"]
+        # print(pred_rgb)
+        # print(gt_rgb)
 
         loss = img2mse(pred_rgb, gt_rgb, pred_mask)
 
@@ -60,7 +62,18 @@ class DepthCriterion(nn.Module):
         # Ground truth is colmap depth and we want to match the pred_depth_attention to colmap_depth.
         # Thus q is pred_depth_attention and p is colmap_depth
         #Scaling the loss by half to match ranges of loss values from rgb
-        kl_divergence = torch.sum(torch.where(colmap_depth !=0, colmap_depth * torch.log(colmap_depth / pred_depth_attention),0))*0.5
+        # kl_divergence = torch.sum(torch.where(colmap_depth !=0, colmap_depth * torch.log(colmap_depth / pred_depth_attention),0))*0.5
+
+        epsilon = 1e-8  # Small epsilon value to avoid division by zero
+
+        # Compute KL divergence with added epsilon for numerical stability
+        kl_divergence = torch.sum(
+            torch.where(
+                colmap_depth != 0,
+                colmap_depth * torch.log((colmap_depth + epsilon) / (pred_depth_attention + epsilon)),
+                torch.tensor(0.0)  # Handle zero entries in colmap_depth
+            )
+        ) * 0.5
 
         # print("KL Divergence:", kl_divergence)
 

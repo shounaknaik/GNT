@@ -21,6 +21,7 @@ from gnt.data_loaders.create_training_dataset import create_training_dataset
 from point_cloud_utils.read_3d_points import read_points3D_text
 import imageio
 
+torch.autograd.set_detect_anomaly(True)
 
 def worker_init_fn(worker_id):
     np.random.seed(np.random.get_state()[1][0] + worker_id)
@@ -157,10 +158,11 @@ def train(args):
             if args.use_colmap_depth:
                 depth_loss = depth_loss_criterion(ret["outputs_coarse"], ray_batch, depth_image_map)
                 loss = (1 - args.lamda_colmap_depth)*loss
-                print(f"Depth loss is {depth_loss}")
+                print(f"RGB Scaled Loss is {loss}")
+                print(f"Depth loss is {args.lamda_colmap_depth * depth_loss}")
                 loss += args.lamda_colmap_depth * depth_loss
             
-            # print(loss)
+            print(f"Total Loss is {loss}")
 
             if ret["outputs_fine"] is not None:
                 fine_loss, scalars_to_log = criterion(
