@@ -32,6 +32,6 @@ inv_uniform = True
 white_bkgd = False
 
 ### CONSOLE AND TENSORBOARD
-i_img = 10000
+i_img = 5000
 i_print = 100
 i_weights = 10000

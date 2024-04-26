@@ -163,9 +163,6 @@ class Projector:
         extrinsic_matrix = torch.inverse(extrinsic_matrix)
         extrinsic_matrix = extrinsic_matrix[:3]
         
-        
-
-
 
         depth_map = np.zeros((int(height.item()), int(width.item())))  # Initialize depth map
         # print(height,width)
@@ -184,6 +181,19 @@ class Projector:
         non_zero_indices = np.nonzero(depth_map)
         non_zero_values = depth_map[non_zero_indices]
         # print(non_zero_values)
+        # print(non_zero_values)
+        # Keep only the values between the 10th and 90th percentage.
+        first_quantile = np.percentile(non_zero_values, 10)
+        third_quantile = np.percentile(non_zero_values, 90)
+
+        # print(f"First Quantile: {first_quantile}")
+        # print(f"Third Quantile: {third_quantile}")
+
+        depth_map_filtered = np.where((depth_map >= first_quantile) & (depth_map <= third_quantile), depth_map, 0)
+
+        # non_zero_indices = np.nonzero(depth_map)
+        # non_zero_values = depth_map[non_zero_indices]
+        # print(non_zero_values)
         # print(len(non_zero_values))
-        return depth_map
+        return depth_map_filtered
 

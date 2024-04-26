@@ -55,13 +55,23 @@ for train_data in tqdm(train_loader,total = len(train_loader)):
     depth_image_map = projector.get_depth_in_one_image(points3D_xyz, ray_batch["camera"])
     # print(ray_batch["camera"])
     result_projection_dictionary[current_camera_path] = depth_image_map
-    # break
+
+    # print(depth_image_map)
+    non_zero_indices = np.nonzero(depth_image_map)
+    non_zero_values = depth_image_map[non_zero_indices]
+    # print(non_zero_values)
+    # print(len(non_zero_values))
+    # print(depth_image_map.max())
+    # print(np.min(depth_image_map[depth_image_map!=0]))
+    # input('q')
 
 print(len(result_projection_dictionary))
 print(len(train_loader))
 
-file_path = '../data/nerf_synthetic/chair/projection_dict.pkl'
 
-# Pickle dump the dictionary into a file
-with open(file_path, 'wb') as f:
-    pickle.dump(result_projection_dictionary, f)
+
+# file_path = '../data/nerf_synthetic/chair/projection_dict.pkl'
+
+# # Pickle dump the dictionary into a file
+# with open(file_path, 'wb') as f:
+#     pickle.dump(result_projection_dictionary, f)

@@ -328,11 +328,11 @@ def log_view(
 
     rgb_im = rgb_im.permute(1, 2, 0).detach().cpu().numpy()
     filename = os.path.join(out_folder, prefix[:-1] + "_{:03d}.png".format(global_step))
-    imageio.imwrite(filename, rgb_im)
+    imageio.imwrite(filename, (rgb_im * 255).astype(np.uint8))
     if depth_im is not None:
         depth_im = depth_im.permute(1, 2, 0).detach().cpu().numpy()
         filename = os.path.join(out_folder, prefix[:-1] + "depth_{:03d}.png".format(global_step))
-        imageio.imwrite(filename, depth_im)
+        imageio.imwrite(filename, (depth_im * 255).astype(np.uint8))
 
     # write scalar
     pred_rgb = (

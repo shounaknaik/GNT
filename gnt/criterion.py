@@ -32,12 +32,15 @@ class DepthCriterion(nn.Module):
         """
         training depth criterion
         """
-        # Attention depth is between 2 and 9
+        # Attention depth is between 2 and 6
         pred_depth_attention = outputs["depth"]
         us = ray_batch["u_positions"]
         vs = ray_batch["v_positions"]
 
-        colmap_depth = colmap_depth_map[us,vs]
+        #Colmap_depth_map converting to probablity fn
+
+        #U is the column and v is the row
+        colmap_depth = colmap_depth_map[vs,us]
 
         # loss = img2mse(pred_rgb, gt_rgb, pred_mask)
         # print("Inside Depth Loss")
@@ -53,7 +56,6 @@ class DepthCriterion(nn.Module):
 
         # Ensure probabilities sum up to 1 (normalize)
         pred_depth_attention /= torch.sum(pred_depth_attention)
-        colmap_depth /= torch.sum(colmap_depth)
 
         # print(pred_depth_attention)
         # print(colmap_depth)
@@ -76,8 +78,6 @@ class DepthCriterion(nn.Module):
         ) * 0.5
 
         # print("KL Divergence:", kl_divergence)
-
-
         # input('q')
 
         return kl_divergence
