@@ -1,5 +1,5 @@
 ### INPUT
-expname = colmap_depth
+expname = colmap_depth_mse
 rootdir = ./
 render_stride = 2
 distributed = False
@@ -19,7 +19,7 @@ lrate_decay_steps = 10000
 single_net = True
 trans_depth = 4
 workers = 2
-n_iters = 50000
+n_iters = 60000
 
 
 ### TESTING

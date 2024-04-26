@@ -52,10 +52,10 @@ class DepthCriterion(nn.Module):
 
         # Assuming pred_depth_attention and colmap_depth are lists of probabilities
         # pred_depth_attention = torch.tensor(pred_depth_attention)
-        colmap_depth = torch.tensor(colmap_depth).to('cuda:0')
+        colmap_depth = torch.tensor(colmap_depth).to('cuda:0').float()
 
         # Ensure probabilities sum up to 1 (normalize)
-        pred_depth_attention /= torch.sum(pred_depth_attention)
+        # pred_depth_attention /= torch.sum(pred_depth_attention)
 
         # print(pred_depth_attention)
         # print(colmap_depth)
@@ -66,19 +66,28 @@ class DepthCriterion(nn.Module):
         #Scaling the loss by half to match ranges of loss values from rgb
         # kl_divergence = torch.sum(torch.where(colmap_depth !=0, colmap_depth * torch.log(colmap_depth / pred_depth_attention),0))*0.5
 
-        epsilon = 1e-8  # Small epsilon value to avoid division by zero
+        # epsilon = 1e-8  # Small epsilon value to avoid division by zero
 
         # Compute KL divergence with added epsilon for numerical stability
-        kl_divergence = torch.sum(
-            torch.where(
-                colmap_depth != 0,
-                colmap_depth * torch.log((colmap_depth + epsilon) / (pred_depth_attention + epsilon)),
-                torch.tensor(0.0)  # Handle zero entries in colmap_depth
-            )
-        ) * 0.5
+        # kl_divergence = torch.sum(
+        #     torch.where(
+        #         colmap_depth != 0,
+        #         colmap_depth * torch.log((colmap_depth + epsilon) / (pred_depth_attention + epsilon)),
+        #         torch.tensor(0.0)  # Handle zero entries in colmap_depth
+        #     )
+        # ) * 0.5
 
         # print("KL Divergence:", kl_divergence)
         # input('q')
 
-        return kl_divergence
+        loss = nn.MSELoss(reduction = 'mean')
+        mse_loss = loss(pred_depth_attention,colmap_depth)
+        mask = colmap_depth!=0
+        pred_depth_attention = pred_depth_attention[mask]
+        colmap_depth = colmap_depth[mask]
+        # print(pred_depth_attention)
+        # print(colmap_depth)
+        # print(f"MSE Loss: {torch.sqrt(mse_loss)}")
+        # input('q')
+        return torch.sqrt(mse_loss)
 
