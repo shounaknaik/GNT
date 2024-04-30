@@ -70,8 +70,8 @@ print(len(train_loader))
 
 
 
-# file_path = '../data/nerf_synthetic/chair/projection_dict.pkl'
+file_path = '../data/nerf_synthetic/chair/projection_dict.pkl'
 
-# # Pickle dump the dictionary into a file
-# with open(file_path, 'wb') as f:
-#     pickle.dump(result_projection_dictionary, f)
+# Pickle dump the dictionary into a file
+with open(file_path, 'wb') as f:
+    pickle.dump(result_projection_dictionary, f)

@@ -1,5 +1,5 @@
 ### INPUT
-expname = colmap_depth_mse
+expname = colmap_depth_kl
 rootdir = ./
 render_stride = 2
 distributed = False
