@@ -69,9 +69,9 @@ def train(args):
     if args.use_colmap_depth:
         #TODO: modularize the scene parameter
         
-        path_3d_points_txt = f'./data/nerf_synthetic/chair/points3D.txt'
+        path_3d_points_txt = f'./data/nerf_synthetic/chair_small_dataset/points3D.txt'
         points3D_xyz = read_points3D_text(path_3d_points_txt)
-        projection_dict_file_path = './data/nerf_synthetic/chair/projection_dict.pkl'
+        projection_dict_file_path = './data/nerf_synthetic/chair_small_dataset/projection_dict.pkl'
         with open(projection_dict_file_path, 'rb') as f:
             projection_dict = pickle.load(f)
 

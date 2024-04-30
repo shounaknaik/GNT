@@ -94,7 +94,10 @@ class NerfSyntheticDataset(Dataset):
         render_intrinsics = self.render_intrinsics[idx]
 
         train_pose_file = os.path.join("/".join(rgb_file.split("/")[:-2]), "transforms_train_colmap.json")
+        # print(rgb_file)
         train_rgb_files, train_intrinsics, train_poses = read_cameras(train_pose_file)
+        # print(len(train_rgb_files))
+        # print(len(train_poses))
 
         if self.mode == "train":
             id_render = int(os.path.basename(rgb_file)[:-4].split("_")[1])

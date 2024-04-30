@@ -14,7 +14,7 @@ from tqdm import tqdm
 parser = config.config_parser()
 args = parser.parse_args()
 
-path_3d_points_txt = f'../data/nerf_synthetic/chair/points3D.txt'
+path_3d_points_txt = f'../data/nerf_synthetic/chair_small_dataset/points3D.txt'
 points3D_xyz = read_points3D_text(path_3d_points_txt)
 
 device = "cuda:{}".format(args.local_rank)
@@ -70,7 +70,7 @@ print(len(train_loader))
 
 
 
-file_path = '../data/nerf_synthetic/chair/projection_dict.pkl'
+file_path = '../data/nerf_synthetic/chair_small_dataset/projection_dict.pkl'
 
 # Pickle dump the dictionary into a file
 with open(file_path, 'wb') as f:
