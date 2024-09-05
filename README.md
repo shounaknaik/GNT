@@ -1,5 +1,15 @@
-# TODO:
-1) Run pipeline on a smaller dataset
+# Contibutions of this fork
+Our work focuses
+on inducing a depth loss into the NeRF training. NeRFs are
+notoriously slow to train. We propose on estimating a point cloud
+of the scene beforehand from the set on input images and then
+use the geometric prior information and pass it onto the NeRF
+via a depth loss.   
+We estimate scene geometry by running COLMAP on the given dataset. We then pass the geometric scene priors to the NeRF transformer model.
+The details of this work can be found in `Report.pdf`. COLMAP frames are arbitary and are out of scale with the standard NeRF datasets. Our major contribution was to transform COLMAP frames into acceptable frames so that the NeRFs can train well.   
+We have also discussed constraints over the implementation of the depth loss because of batching and it's consequences while using the KL Divergence loss.  
+Finally we show and discuss our results.   
+The final presentation can also be seen in the repository. `Capstone_Presentation.pptx`
 
 # Is Attention All That NeRF Needs?
 [Mukund Varma T](https://mukundvarmat.github.io/)<sup>1*</sup>,
